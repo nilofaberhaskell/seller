@@ -1,0 +1,55 @@
+function doGet(e) {
+
+  // Retorna o PIN
+  if (e.parameter && e.parameter.action === 'pin') {
+    const ss  = SpreadsheetApp.openById('17n_R58wnlcQf8eSUC-kb8r_svd5MDnkRxIq-sFC15SI');
+    const cfg = ss.getSheetByName('config');
+    const pin = cfg ? cfg.getRange('B1').getValue() : '';
+    return ContentService
+      .createTextOutput(JSON.stringify({ pin: String(pin) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Retorna dados da planilha
+  if (!e.parameter || !e.parameter.data) {
+    const ss    = SpreadsheetApp.openById('17n_R58wnlcQf8eSUC-kb8r_svd5MDnkRxIq-sFC15SI');
+    const sheet = ss.getSheetByName('cadastro de sellers');
+    if (!sheet || sheet.getLastRow() < 2) {
+      return ContentService
+        .createTextOutput(JSON.stringify([]))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    const rows   = sheet.getDataRange().getValues();
+    const header = rows[0];
+    const data   = rows.slice(1).map(function(row) {
+      var obj = {};
+      header.forEach(function(h, i) { obj[h] = row[i]; });
+      return obj;
+    });
+    return ContentService
+      .createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Grava dado novo
+  try {
+    const ss    = SpreadsheetApp.openById('17n_R58wnlcQf8eSUC-kb8r_svd5MDnkRxIq-sFC15SI');
+    const ABA   = 'cadastro de sellers';
+    let sheet   = ss.getSheetByName(ABA);
+    if (!sheet) sheet = ss.insertSheet(ABA);
+    const data  = JSON.parse(e.parameter.data);
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(Object.keys(data));
+      const h = sheet.getRange(1,1,1,Object.keys(data).length);
+      h.setFontWeight('bold'); h.setBackground('#2d6a4f'); h.setFontColor('#ffffff');
+    }
+    sheet.appendRow(Object.values(data));
+    return ContentService
+      .createTextOutput('ok')
+      .setMimeType(ContentService.MimeType.TEXT);
+  } catch(err) {
+    return ContentService
+      .createTextOutput('error:' + err.message)
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
