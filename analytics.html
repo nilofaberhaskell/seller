@@ -1,55 +1,405 @@
-function doGet(e) {
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — Sellers Haskell</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{--g800:#1f4d35;--g700:#2d6a4f;--g600:#40916c;--g500:#52b788;--g400:#74c69d;--g300:#95d5b2;--g200:#b7e4c7;--g100:#d8f3dc;--g50:#f0faf3;--text:#1a3d2b;--muted:#6a8f7a;--error:#c0392b;--surface:#fff;--sh:0 1px 3px rgba(40,100,65,.08),0 1px 2px rgba(40,100,65,.05);--sh2:0 4px 16px rgba(40,100,65,.10)}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--g50);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
 
-  // Retorna o PIN
-  if (e.parameter && e.parameter.action === 'pin') {
-    const ss  = SpreadsheetApp.openById('17n_R58wnlcQf8eSUC-kb8r_svd5MDnkRxIq-sFC15SI');
-    const cfg = ss.getSheetByName('config');
-    const pin = cfg ? cfg.getRange('B1').getValue() : '';
-    return ContentService
-      .createTextOutput(JSON.stringify({ pin: String(pin) }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
+  #lock{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .lock-box{background:#fff;border:1px solid var(--g200);border-radius:16px;padding:48px 40px;width:100%;max-width:380px;box-shadow:var(--sh2);text-align:center}
+  .lock-icon{font-size:44px;margin-bottom:18px}
+  .lock-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px}
+  .lock-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+  .pin-row{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+  .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--g300);background:transparent;transition:all .2s}
+  .pin-dot.filled{background:var(--g600);border-color:var(--g600)}
+  .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto}
+  .nk{padding:14px;border-radius:10px;border:1.5px solid var(--g200);background:#fff;font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text);cursor:pointer;transition:all .15s}
+  .nk:hover{background:var(--g50);border-color:var(--g400)}
+  .nk:active{transform:scale(.95)}
+  .nk.del{color:var(--muted)}
+  .nk.del:hover{color:var(--error);border-color:var(--error)}
+  .lock-err{font-size:13px;color:var(--error);margin-top:16px;min-height:20px;font-weight:500}
+  .shake{animation:shake .4s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}60%{transform:translateX(8px)}80%{transform:translateX(-4px)}}
 
-  // Retorna dados da planilha
-  if (!e.parameter || !e.parameter.data) {
-    const ss    = SpreadsheetApp.openById('17n_R58wnlcQf8eSUC-kb8r_svd5MDnkRxIq-sFC15SI');
-    const sheet = ss.getSheetByName('cadastro de sellers');
-    if (!sheet || sheet.getLastRow() < 2) {
-      return ContentService
-        .createTextOutput(JSON.stringify([]))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    const rows   = sheet.getDataRange().getValues();
-    const header = rows[0];
-    const data   = rows.slice(1).map(function(row) {
-      var obj = {};
-      header.forEach(function(h, i) { obj[h] = row[i]; });
-      return obj;
-    });
-    return ContentService
-      .createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
+  #dash{display:none;padding:28px 24px 60px}
+  .dash-wrap{max-width:1100px;margin:0 auto}
 
-  // Grava dado novo
-  try {
-    const ss    = SpreadsheetApp.openById('17n_R58wnlcQf8eSUC-kb8r_svd5MDnkRxIq-sFC15SI');
-    const ABA   = 'cadastro de sellers';
-    let sheet   = ss.getSheetByName(ABA);
-    if (!sheet) sheet = ss.insertSheet(ABA);
-    const data  = JSON.parse(e.parameter.data);
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(Object.keys(data));
-      const h = sheet.getRange(1,1,1,Object.keys(data).length);
-      h.setFontWeight('bold'); h.setBackground('#2d6a4f'); h.setFontColor('#ffffff');
-    }
-    sheet.appendRow(Object.values(data));
-    return ContentService
-      .createTextOutput('ok')
-      .setMimeType(ContentService.MimeType.TEXT);
-  } catch(err) {
-    return ContentService
-      .createTextOutput('error:' + err.message)
-      .setMimeType(ContentService.MimeType.TEXT);
+  .dheader{background:var(--g800);border-radius:14px;padding:28px 32px;margin-bottom:24px;display:flex;align-items:center;gap:16px;box-shadow:var(--sh2);position:relative;overflow:hidden}
+  .dheader::before{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(82,183,136,.15) 0%,transparent 70%);pointer-events:none}
+  .dh-logo{width:52px;height:52px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.12);flex-shrink:0}
+  .dh-logo img{width:100%;height:100%;object-fit:contain}
+  .dh-text h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-.3px}
+  .dh-text h1 span{color:var(--g400)}
+  .dh-text p{color:rgba(255,255,255,.6);font-size:13px;margin-top:3px}
+  .dh-actions{margin-left:auto;display:flex;gap:10px;align-items:center}
+  .btn{padding:9px 18px;border-radius:8px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .2s}
+  .btn-out{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2)}
+  .btn-out:hover{background:rgba(255,255,255,.22)}
+  .btn-refresh{background:var(--g500);color:#fff}
+  .btn-refresh:hover{background:var(--g400)}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:20px}
+  .kpi{background:var(--surface);border:1px solid var(--g100);border-radius:12px;padding:20px;box-shadow:var(--sh)}
+  .kpi-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--g700);line-height:1}
+  .kpi-lbl{font-size:12px;color:var(--muted);margin-top:6px;font-weight:500}
+  .kpi-sub{font-size:11px;color:var(--g500);margin-top:3px}
+  .kpi.accent{background:var(--g700)}
+  .kpi.accent .kpi-val{color:#fff}
+  .kpi.accent .kpi-lbl{color:rgba(255,255,255,.7)}
+  .kpi.accent .kpi-sub{color:rgba(255,255,255,.5)}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  @media(max-width:768px){.grid-2{grid-template-columns:1fr}}
+
+  .card{background:var(--surface);border:1px solid var(--g100);border-radius:12px;padding:22px;box-shadow:var(--sh)}
+  .card-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text);letter-spacing:.8px;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+  .card-title .ic{font-size:16px}
+
+  .dist-table{width:100%;border-collapse:collapse;font-size:13px}
+  .dist-table th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.8px;text-transform:uppercase;border-bottom:2px solid var(--g100)}
+  .dist-table td{padding:10px 12px;border-bottom:1px solid var(--g50);color:var(--text)}
+  .dist-table tr:last-child td{border-bottom:none}
+  .dist-table tr:hover td{background:var(--g50)}
+  .dist-bar{height:8px;background:var(--g100);border-radius:4px;overflow:hidden;flex:1}
+  .dist-bar-fill{height:100%;background:var(--g600);border-radius:4px}
+  .rank-badge{width:22px;height:22px;border-radius:50%;background:var(--g100);color:var(--g700);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .rank-badge.top{background:var(--g700);color:#fff}
+
+  .mp-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--g50)}
+  .mp-row:last-child{border-bottom:none}
+  .mp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .mp-bar{width:110px;height:8px;background:var(--g100);border-radius:4px;overflow:hidden;flex-shrink:0}
+  .mp-bar-f{height:100%;border-radius:4px}
+
+  .tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+  .td{background:var(--g100);color:var(--g700)}
+  .th{background:#fff3cd;color:#856404}
+  .tdi{background:#cfe2ff;color:#084298}
+
+  .scroll-wrap{overflow-x:auto}
+  .scroll-wrap::-webkit-scrollbar{height:4px}
+  .scroll-wrap::-webkit-scrollbar-thumb{background:var(--g200);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="lock-box">
+    <div class="lock-icon">📊</div>
+    <div class="lock-title">Painel Analytics</div>
+    <div class="lock-sub">Digite o PIN para acessar</div>
+    <div class="pin-row" id="pinRow">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="numpad">
+      <button class="nk" onclick="pk('1')">1</button>
+      <button class="nk" onclick="pk('2')">2</button>
+      <button class="nk" onclick="pk('3')">3</button>
+      <button class="nk" onclick="pk('4')">4</button>
+      <button class="nk" onclick="pk('5')">5</button>
+      <button class="nk" onclick="pk('6')">6</button>
+      <button class="nk" onclick="pk('7')">7</button>
+      <button class="nk" onclick="pk('8')">8</button>
+      <button class="nk" onclick="pk('9')">9</button>
+      <button class="nk del" onclick="pk('del')">⌫</button>
+      <button class="nk" onclick="pk('0')">0</button>
+      <button class="nk" onclick="pk('ok')" style="background:var(--g700);color:#fff;border-color:var(--g700)">OK</button>
+    </div>
+    <div class="lock-err" id="lockErr"></div>
+  </div>
+</div>
+
+<div id="dash">
+  <div class="dash-wrap">
+
+    <div class="dheader">
+      <div class="dh-logo">
+        <img src="https://acdn-us.mitiendanube.com/stores/001/154/387/themes/common/logo-668637200-1716559383-ce2ff7c48eefb1a2e2e8fca4eb8956c51716559384-320-0.webp" alt="Haskell">
+      </div>
+      <div class="dh-text">
+        <h1>Analytics <span>Sellers</span></h1>
+        <p id="lastUpdate">—</p>
+      </div>
+      <div class="dh-actions">
+        <button class="btn btn-refresh" onclick="load()">↻ Atualizar</button>
+        <button class="btn btn-out" onclick="logout()">🔒 Sair</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi accent"><div class="kpi-val" id="k0">—</div><div class="kpi-lbl">Total de Sellers</div></div>
+      <div class="kpi"><div class="kpi-val" id="k1">—</div><div class="kpi-lbl">Sites Próprios</div><div class="kpi-sub" id="k1s"></div></div>
+      <div class="kpi"><div class="kpi-val" id="k2">—</div><div class="kpi-lbl">Lojas Digitais</div></div>
+      <div class="kpi"><div class="kpi-val" id="k3">—</div><div class="kpi-lbl">Lojas Híbridas</div></div>
+      <div class="kpi"><div class="kpi-val" id="k4">—</div><div class="kpi-lbl">Lojas Distribuidor</div></div>
+      <div class="kpi"><div class="kpi-val" id="k5">—</div><div class="kpi-lbl">Distribuidores ativos</div></div>
+    </div>
+
+    <!-- Row 1 -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span class="ic">🏪</span>Tipo de Operação</div>
+        <div style="position:relative;height:230px"><canvas id="cTipo"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="ic">🛒</span>Marketplaces — Lojas Ativas</div>
+        <div id="mpList"></div>
+      </div>
+    </div>
+
+    <!-- Distribuidores -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title"><span class="ic">🏭</span>Sellers por Distribuidor</div>
+      <div class="scroll-wrap">
+        <table class="dist-table">
+          <thead><tr><th>#</th><th>Distribuidor</th><th>Sellers</th><th style="min-width:180px">Proporção</th><th>Tipo predominante</th></tr></thead>
+          <tbody id="distBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Row 2 -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><span class="ic">📅</span>Cadastros por Período</div>
+        <div style="position:relative;height:200px"><canvas id="cPeriodo"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="ic">🌐</span>Presença Digital — Nº de Canais</div>
+        <div style="position:relative;height:200px"><canvas id="cCanais"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Recentes -->
+    <div class="card">
+      <div class="card-title"><span class="ic">🕐</span>Últimos 10 Cadastros</div>
+      <div class="scroll-wrap">
+        <table class="dist-table">
+          <thead><tr><th>Data</th><th>Seller</th><th>Distribuidor</th><th>Tipo</th><th>E-mail</th><th>Canais</th></tr></thead>
+          <tbody id="recentBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+var PIN=null, STORAGE_KEY='sellers_haskell_v3';
+var SHEETS_URL='https://script.google.com/macros/s/AKfycbwvuuYzss2QErXHTiz7YQYO-A0IDkMKV-wizajuGBNYZRzmLQP5d44qTRfc96Q6uSYD/exec';
+var pin='', records=[], charts={};
+
+var MPS=[
+  {key:'Mercado Livre',   color:'#d4a000'},
+  {key:'Amazon',          color:'#e07b00'},
+  {key:'Shopee',          color:'#ee4d2d'},
+  {key:'Magazine Luiza',  color:'#0069cc'},
+  {key:'Americanas',      color:'#c0001a'},
+  {key:'Casas Bahia',     color:'#003a9e'},
+  {key:'Carrefour',       color:'#003f8a'},
+  {key:'Correios Marketplace', color:'#ffcc00'},
+  {key:'Site Próprio',    color:'#2d6a4f'},
+];
+
+function pk(k){
+  if(k==='del'){pin=pin.slice(0,-1);}
+  else if(k==='ok'){chkPin();return;}
+  else{if(pin.length>=4)return;pin+=k;if(pin.length===4){chkPin();return;}}
+  dots();
+}
+function dots(){for(var i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('filled',i<pin.length);}
+function chkPin(){
+  if(PIN!==null){ validate(); return; }
+  fetch(SHEETS_URL+'?action=pin')
+    .then(function(r){return r.json();})
+    .then(function(d){ PIN=String(d.pin||''); validate(); })
+    .catch(function(){ document.getElementById('lockErr').textContent='Erro ao verificar PIN.'; pin=''; dots(); });
+}
+function validate(){
+  if(pin===PIN){
+    document.getElementById('lock').style.display='none';
+    document.getElementById('dash').style.display='block';
+    load();
+  } else {
+    PIN=null;
+    document.getElementById('lockErr').textContent='PIN incorreto.';
+    var r=document.getElementById('pinRow');r.classList.remove('shake');void r.offsetWidth;r.classList.add('shake');
+    pin='';dots();
   }
 }
+document.addEventListener('keydown',function(e){
+  if(document.getElementById('lock').style.display==='none')return;
+  if(e.key>='0'&&e.key<='9')pk(e.key);
+  else if(e.key==='Backspace')pk('del');
+  else if(e.key==='Enter')pk('ok');
+});
+function logout(){pin='';dots();document.getElementById('lockErr').textContent='';document.getElementById('lock').style.display='';document.getElementById('dash').style.display='none';}
+
+
+function load(){
+  document.getElementById('lastUpdate').textContent='Carregando...';
+  fetch(SHEETS_URL)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(Array.isArray(data) && data.length>0){
+        records=data;
+      } else {
+        records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+      }
+      document.getElementById('lastUpdate').textContent=records.length+' registros · Atualizado às '+new Date().toLocaleTimeString('pt-BR');
+      kpis();tipo();mps();dists();periodo();canais();recentes();
+    })
+    .catch(function(){
+      records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+      document.getElementById('lastUpdate').textContent=records.length+' registros (cache local) · '+new Date().toLocaleTimeString('pt-BR');
+      kpis();tipo();mps();dists();periodo();canais();recentes();
+    });
+}
+
+function pct(v,t){return t?Math.round(v/t*100):0;}
+
+function kpis(){
+  var n=records.length;
+  var sp=records.filter(function(r){return r['Site Próprio']==='Sim';}).length;
+  var dig=records.filter(function(r){return(r['Tipo Operação']||'').includes('Digital');}).length;
+  var hyb=records.filter(function(r){return(r['Tipo Operação']||'').toLowerCase().includes('híb')||(r['Tipo Operação']||'').toLowerCase().includes('hib');}).length;
+  var dis=records.filter(function(r){return(r['Tipo Operação']||'').includes('Distribuidor');}).length;
+  var ud=new Set(records.map(function(r){return r['Distribuidor'];})).size;
+  document.getElementById('k0').textContent=n;
+  document.getElementById('k1').textContent=sp;
+  document.getElementById('k1s').textContent=pct(sp,n)+'% dos sellers';
+  document.getElementById('k2').textContent=dig;
+  document.getElementById('k3').textContent=hyb;
+  document.getElementById('k4').textContent=dis;
+  document.getElementById('k5').textContent=ud;
+}
+
+function tipo(){
+  var dig=records.filter(function(r){return(r['Tipo Operação']||'').includes('Digital');}).length;
+  var hyb=records.filter(function(r){return(r['Tipo Operação']||'').toLowerCase().includes('híb')||(r['Tipo Operação']||'').toLowerCase().includes('hib');}).length;
+  var dis=records.filter(function(r){return(r['Tipo Operação']||'').includes('Distribuidor');}).length;
+  if(charts.tipo)charts.tipo.destroy();
+  charts.tipo=new Chart(document.getElementById('cTipo'),{
+    type:'doughnut',
+    data:{labels:['Loja Digital','Loja Híbrida','Loja do Distribuidor'],
+      datasets:[{data:[dig,hyb,dis],backgroundColor:['#40916c','#f0a500','#3b82f6'],borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:12},padding:14,color:'#2d4a39'}}}}
+  });
+}
+
+function mps(){
+  var n=records.length||1;
+  var data=MPS.map(function(m){
+    return {key:m.key,color:m.color,count:records.filter(function(r){return r[m.key]==='Sim';}).length};
+  }).sort(function(a,b){return b.count-a.count;});
+  document.getElementById('mpList').innerHTML=data.map(function(d){
+    var p=pct(d.count,n);
+    return '<div class="mp-row">'
+      +'<div class="mp-dot" style="background:'+d.color+'"></div>'
+      +'<span style="flex:1;font-size:13px;font-weight:500">'+d.key+'</span>'
+      +'<div class="mp-bar"><div class="mp-bar-f" style="width:'+p+'%;background:'+d.color+'"></div></div>'
+      +'<span style="font-size:12px;font-weight:700;color:var(--g700);min-width:36px;text-align:right">'+p+'%</span>'
+      +'<span style="font-size:12px;color:var(--muted);min-width:28px;text-align:right">'+d.count+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+function dists(){
+  var map={};
+  records.forEach(function(r){
+    var d=r['Distribuidor']||'Sem distribuidor';
+    if(!map[d])map[d]={count:0,tipos:{}};
+    map[d].count++;
+    var t=r['Tipo Operação']||'Não informado';
+    map[d].tipos[t]=(map[d].tipos[t]||0)+1;
+  });
+  var sorted=Object.keys(map).map(function(k){
+    var ts=map[k].tipos;
+    var top=Object.keys(ts).reduce(function(a,b){return ts[a]>=ts[b]?a:b;},Object.keys(ts)[0]||'');
+    return{name:k,count:map[k].count,top:top};
+  }).sort(function(a,b){return b.count-a.count;});
+  var max=sorted[0]?sorted[0].count:1;
+  document.getElementById('distBody').innerHTML=sorted.map(function(d,i){
+    var tc=d.top.includes('Digital')?'td':d.top.toLowerCase().includes('h')?'th':'tdi';
+    var tl=d.top.includes('Digital')?'Digital':d.top.toLowerCase().includes('h')?'Híbrida':'Distribuidor';
+    return '<tr>'
+      +'<td><div class="rank-badge'+(i<3?' top':'')+'>'+(i+1)+'</div></td>'
+      +'<td>'+d.name+'</td>'
+      +'<td><strong>'+d.count+'</strong></td>'
+      +'<td><div style="display:flex;align-items:center;gap:8px"><div class="dist-bar" style="flex:1"><div class="dist-bar-fill" style="width:'+Math.round(d.count/max*100)+'%"></div></div></div></td>'
+      +'<td><span class="tag '+tc+'">'+tl+'</span></td>'
+      +'</tr>';
+  }).join('')||'<tr><td colspan="5" style="padding:20px;color:var(--muted);text-align:center">Nenhum dado</td></tr>';
+}
+
+function periodo(){
+  var byDate={};
+  records.forEach(function(r){
+    var d=(r['Data Cadastro']||'').split(',')[0].trim();
+    byDate[d]=(byDate[d]||0)+1;
+  });
+  var dates=Object.keys(byDate).sort(function(a,b){
+    var pa=a.split('/').reverse().join(''),pb=b.split('/').reverse().join('');
+    return pa.localeCompare(pb);
+  }).slice(-14);
+  if(charts.periodo)charts.periodo.destroy();
+  charts.periodo=new Chart(document.getElementById('cPeriodo'),{
+    type:'bar',
+    data:{labels:dates,datasets:[{label:'Cadastros',data:dates.map(function(d){return byDate[d];}),
+      backgroundColor:'#52b788',borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:11},color:'#6a8f7a'},grid:{display:false}},
+        y:{ticks:{font:{size:11},color:'#6a8f7a',stepSize:1},grid:{color:'#f0faf3'},beginAtZero:true}}}
+  });
+}
+
+function nCanais(r){return MPS.filter(function(m){return r[m.key]==='Sim';}).length;}
+
+function canais(){
+  var s=[0,0,0,0];
+  records.forEach(function(r){var n=nCanais(r);s[Math.min(n,3)]++;});
+  if(charts.canais)charts.canais.destroy();
+  charts.canais=new Chart(document.getElementById('cCanais'),{
+    type:'bar',
+    data:{labels:['Nenhum canal','1 canal','2 canais','3+ canais'],
+      datasets:[{label:'Sellers',data:s,backgroundColor:['#d8f3dc','#95d5b2','#52b788','#2d6a4f'],borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:11},color:'#6a8f7a'},grid:{display:false}},
+        y:{ticks:{font:{size:11},color:'#6a8f7a',stepSize:1},grid:{color:'#f0faf3'},beginAtZero:true}}}
+  });
+}
+
+function recentes(){
+  var recent=records.slice().reverse().slice(0,10);
+  document.getElementById('recentBody').innerHTML=recent.map(function(r){
+    var tc=(r['Tipo Operação']||'').includes('Digital')?'td':(r['Tipo Operação']||'').toLowerCase().includes('h')?'th':'tdi';
+    var tl=(r['Tipo Operação']||'').includes('Digital')?'Digital':(r['Tipo Operação']||'').toLowerCase().includes('h')?'Híbrida':'Distribuidor';
+    return '<tr>'
+      +'<td style="white-space:nowrap;color:var(--muted);font-size:12px">'+(r['Data Cadastro']||'—')+'</td>'
+      +'<td><strong>'+(r['Nome do Vendedor']||'—')+'</strong><div style="font-size:11px;color:var(--muted)">'+(r['Nome Fantasia']||'')+'</div></td>'
+      +'<td style="font-size:13px">'+(r['Distribuidor']||'—')+'</td>'
+      +'<td><span class="tag '+tc+'">'+tl+'</span></td>'
+      +'<td style="color:var(--muted);font-size:12px">'+(r['E-mail']||'—')+'</td>'
+      +'<td style="text-align:center"><strong style="color:var(--g700)">'+nCanais(r)+'</strong></td>'
+      +'</tr>';
+  }).join('')||'<tr><td colspan="6" style="padding:20px;color:var(--muted);text-align:center">Nenhum registro</td></tr>';
+}
+</script>
+</body>
+</html>
