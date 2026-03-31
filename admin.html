@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Dados de Sellers</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --g800: #1f4d35; --g700: #2d6a4f; --g600: #40916c; --g500: #52b788;
+    --g400: #74c69d; --g300: #95d5b2; --g200: #b7e4c7; --g100: #d8f3dc; --g50: #f0faf3;
+    --text: #1a3d2b; --muted: #6a8f7a; --error: #c0392b;
+    --sh: 0 1px 3px rgba(40,100,65,.08), 0 1px 2px rgba(40,100,65,.05);
+  }
+  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--g50); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+
+  /* ── Lock screen ── */
+  #lockScreen {
+    background: #fff; border: 1px solid var(--g200); border-radius: 16px;
+    padding: 48px 40px; width: 100%; max-width: 400px;
+    box-shadow: 0 8px 32px rgba(40,100,65,.12);
+    text-align: center;
+  }
+  .lock-icon { font-size: 48px; margin-bottom: 20px; }
+  .lock-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+  .lock-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+  .pin-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--g300); background: transparent;
+    transition: background .2s, border-color .2s;
+  }
+  .pin-dot.filled { background: var(--g600); border-color: var(--g600); }
+  .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 240px; margin: 0 auto; }
+  .nk {
+    padding: 14px; border-radius: 10px; border: 1.5px solid var(--g200);
+    background: #fff; font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+    color: var(--text); cursor: pointer; transition: all .15s;
+  }
+  .nk:hover { background: var(--g50); border-color: var(--g400); }
+  .nk:active { transform: scale(.95); }
+  .nk.del { font-size: 20px; color: var(--muted); }
+  .nk.del:hover { color: var(--error); border-color: var(--error); }
+  .lock-err { font-size: 13px; color: var(--error); margin-top: 16px; min-height: 20px; font-weight: 500; }
+  .shake { animation: shake .4s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)} 80%{transform:translateX(-4px)} }
+
+  /* ── Admin panel ── */
+  #adminPanel { display: none; width: 100%; max-width: 900px; }
+
+  header {
+    background: var(--g800); border-radius: 14px; padding: 28px 32px;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 4px 16px rgba(40,100,65,.12); position: relative; overflow: hidden;
+  }
+  header::before { content: ''; position: absolute; right: -30px; top: -30px; width: 160px; height: 160px; background: radial-gradient(circle, rgba(82,183,136,.18) 0%, transparent 70%); pointer-events: none; }
+  .h-logo { width: 48px; height: 48px; background: rgba(255,255,255,.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; border: 1px solid rgba(255,255,255,.15); }
+  .h-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: #fff; }
+  .h-title span { color: var(--g400); }
+  .h-sub { color: rgba(255,255,255,.6); font-size: 13px; margin-top: 3px; }
+  .h-logout { margin-left: auto; padding: 8px 16px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: background .2s; }
+  .h-logout:hover { background: rgba(255,255,255,.22); }
+
+  .stats-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat {
+    flex: 1; min-width: 140px; background: #fff; border: 1px solid var(--g200);
+    border-radius: 10px; padding: 18px 20px; box-shadow: var(--sh);
+  }
+  .stat-n { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--g700); }
+  .stat-l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .search-wrap { flex: 1; min-width: 200px; position: relative; }
+  .search-wrap input { width: 100%; padding: 10px 14px 10px 36px; background: #fff; border: 1.5px solid var(--g200); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color .2s, box-shadow .2s; }
+  .search-wrap input:focus { border-color: var(--g500); box-shadow: 0 0 0 3px rgba(64,145,108,.1); }
+  .search-wrap::before { content: '🔍'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; }
+
+  .btn { padding: 10px 20px; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all .2s; letter-spacing: .3px; display: flex; align-items: center; gap: 7px; }
+  .btn-dl { background: var(--g700); color: #fff; box-shadow: 0 2px 8px rgba(45,106,79,.25); }
+  .btn-dl:hover { background: var(--g800); transform: translateY(-1px); }
+  .btn-cl { background: transparent; color: var(--muted); border: 1.5px solid var(--g200); }
+  .btn-cl:hover { border-color: var(--error); color: var(--error); }
+
+  .table-wrap { background: #fff; border: 1px solid var(--g100); border-radius: 10px; overflow: hidden; box-shadow: var(--sh); }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--g800); color: #fff; padding: 12px 14px; text-align: left; font-family: 'Syne', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; font-weight: 700; }
+  tbody tr { border-bottom: 1px solid var(--g50); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--g50); }
+  tbody td { padding: 11px 14px; color: var(--text); white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .tag.sim { background: var(--g100); color: var(--g700); }
+  .tag.nao { background: #f5f5f5; color: #999; }
+
+  .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+  .empty-state .ico { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--g100); font-size: 13px; color: var(--muted); flex-wrap: wrap; gap: 10px; }
+  .pg-btns { display: flex; gap: 6px; }
+  .pg-btn { padding: 6px 12px; border-radius: 6px; border: 1.5px solid var(--g200); background: #fff; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text); transition: all .15s; }
+  .pg-btn:hover:not(:disabled) { border-color: var(--g500); color: var(--g700); }
+  .pg-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .pg-btn.active { background: var(--g700); color: #fff; border-color: var(--g700); }
+</style>
+</head>
+<body>
+
+<!-- Lock Screen -->
+<div id="lockScreen">
+  <div class="lock-icon">🔐</div>
+  <div class="lock-title">Área do Administrador</div>
+  <div class="lock-sub">Digite o PIN para acessar os dados</div>
+  <div class="pin-row" id="pinRow">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="numpad">
+    <button class="nk" onclick="pressKey('1')">1</button>
+    <button class="nk" onclick="pressKey('2')">2</button>
+    <button class="nk" onclick="pressKey('3')">3</button>
+    <button class="nk" onclick="pressKey('4')">4</button>
+    <button class="nk" onclick="pressKey('5')">5</button>
+    <button class="nk" onclick="pressKey('6')">6</button>
+    <button class="nk" onclick="pressKey('7')">7</button>
+    <button class="nk" onclick="pressKey('8')">8</button>
+    <button class="nk" onclick="pressKey('9')">9</button>
+    <button class="nk del" onclick="pressKey('del')">⌫</button>
+    <button class="nk" onclick="pressKey('0')">0</button>
+    <button class="nk" onclick="pressKey('ok')" style="background:var(--g700);color:#fff;border-color:var(--g700)">OK</button>
+  </div>
+  <div class="lock-err" id="lockErr"></div>
+</div>
+
+<!-- Admin Panel -->
+<div id="adminPanel">
+
+  <header>
+    <div class="h-logo">📊</div>
+    <div>
+      <div class="h-title">Painel <span>Admin</span></div>
+      <div class="h-sub">Dados de cadastro de sellers</div>
+    </div>
+    <button class="h-logout" onclick="logout()">🔒 Sair</button>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-n" id="statTotal">0</div>
+      <div class="stat-l">Total de cadastros</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" id="statHoje">0</div>
+      <div class="stat-l">Cadastrados hoje</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" id="statDists">0</div>
+      <div class="stat-l">Distribuidores únicos</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" id="statMPs">0</div>
+      <div class="stat-l">Canais mais usado</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Buscar por vendedor, distribuidor, e-mail..." oninput="applyFilter()">
+    </div>
+    <button class="btn btn-dl" onclick="downloadCSV()">⬇ Exportar Excel</button>
+    <button class="btn btn-cl" onclick="confirmClear()">🗑 Limpar dados</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table id="dataTable">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none">
+        <div class="ico">📭</div>
+        <p>Nenhum cadastro encontrado</p>
+      </div>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+var PIN         = null;
+var SHEETS_URL  = 'https://script.google.com/macros/s/AKfycbwvuuYzss2QErXHTiz7YQYO-A0IDkMKV-wizajuGBNYZRzmLQP5d44qTRfc96Q6uSYD/exec';
+var STORAGE_KEY = 'sellers_haskell_v3';
+
+var allRecords  = [];
+var filtered    = [];
+var page        = 1;
+var PER_PAGE    = 15;
+
+// ── PIN ────────────────────────────────────────────────────────────────────
+var pinBuffer = '';
+
+function pressKey(k) {
+  if (k === 'del') {
+    pinBuffer = pinBuffer.slice(0, -1);
+  } else if (k === 'ok') {
+    checkPin();
+    return;
+  } else {
+    if (pinBuffer.length >= 4) return;
+    pinBuffer += k;
+    if (pinBuffer.length === 4) { checkPin(); return; }
+  }
+  updateDots();
+}
+
+function updateDots() {
+  for (var i = 0; i < 4; i++) {
+    document.getElementById('pd' + i).classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+
+function checkPin() {
+  if (PIN !== null) { doCheck(); return; }
+  fetch(SHEETS_URL + '?action=pin')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ PIN = String(d.pin || ''); doCheck(); })
+    .catch(function(){ document.getElementById('lockErr').textContent = 'Erro ao verificar PIN.'; pinBuffer=''; updateDots(); });
+}
+function doCheck() {
+  if (pinBuffer === PIN) {
+    unlock();
+  } else {
+    PIN = null;
+    document.getElementById('lockErr').textContent = 'PIN incorreto. Tente novamente.';
+    var row = document.getElementById('pinRow');
+    row.classList.remove('shake');
+    void row.offsetWidth;
+    row.classList.add('shake');
+    pinBuffer = '';
+    updateDots();
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (document.getElementById('lockScreen').style.display === 'none') return;
+  if (e.key >= '0' && e.key <= '9') pressKey(e.key);
+  else if (e.key === 'Backspace') pressKey('del');
+  else if (e.key === 'Enter') pressKey('ok');
+});
+
+function unlock() {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('adminPanel').style.display = 'block';
+  loadData();
+}
+
+function logout() {
+  pinBuffer = '';
+  updateDots();
+  document.getElementById('lockErr').textContent = '';
+  document.getElementById('lockScreen').style.display = '';
+  document.getElementById('adminPanel').style.display = 'none';
+}
+
+// ── Data ───────────────────────────────────────────────────────────────────
+function loadData() {
+  allRecords = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  applyFilter();
+  renderStats();
+}
+
+function renderStats() {
+  document.getElementById('statTotal').textContent = allRecords.length;
+
+  var today = new Date().toLocaleDateString('pt-BR');
+  var hoje  = allRecords.filter(function(r) { return (r['Data Cadastro'] || '').startsWith(today.split('/').reverse().join('').slice(-2) + '/' + today.split('/')[1] + '/' + today.split('/')[2]) || (r['Data Cadastro'] || '').includes(today); }).length;
+  // simpler today check
+  hoje = allRecords.filter(function(r){ return (r['Data Cadastro']||'').slice(0,8) === today.slice(0,8); }).length;
+  document.getElementById('statHoje').textContent = hoje;
+
+  var dists = new Set(allRecords.map(function(r){ return r['Distribuidor']; })).size;
+  document.getElementById('statDists').textContent = dists;
+
+  // Most used marketplace
+  var mpCols = ['Mercado Livre','Amazon','Shopee','Magazine Luiza','Americanas','Casas Bahia','Carrefour','KaBuM!','Netshoes','Site Próprio'];
+  var counts = {};
+  mpCols.forEach(function(mp){ counts[mp] = allRecords.filter(function(r){ return r[mp] === 'Sim'; }).length; });
+  var top = mpCols.reduce(function(a,b){ return counts[a] >= counts[b] ? a : b; }, mpCols[0]);
+  document.getElementById('statMPs').textContent = top ? top.split(' ')[0] : '—';
+}
+
+function applyFilter() {
+  var q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  filtered = q
+    ? allRecords.filter(function(r) {
+        return Object.values(r).some(function(v){ return String(v).toLowerCase().includes(q); });
+      })
+    : allRecords.slice();
+  page = 1;
+  renderTable();
+}
+
+function renderTable() {
+  var thead = document.getElementById('thead');
+  var tbody = document.getElementById('tbody');
+  var empty = document.getElementById('emptyState');
+
+  if (!allRecords.length || !filtered.length) {
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  // Fixed visible columns (compact view)
+  var COLS = ['Data Cadastro','Distribuidor','Nome do Vendedor','E-mail','CNPJ/CPF','Nome Fantasia','Tipo Operação'];
+  var mpCols = ['Mercado Livre','Amazon','Shopee','Magazine Luiza','Americanas','Casas Bahia','Carrefour','KaBuM!','Netshoes','Site Próprio'];
+  var allCols = COLS.concat(mpCols);
+
+  thead.innerHTML = '<tr>' + allCols.map(function(c){
+    return '<th>' + c + '</th>';
+  }).join('') + '</tr>';
+
+  var start = (page - 1) * PER_PAGE;
+  var pageData = filtered.slice(start, start + PER_PAGE);
+
+  tbody.innerHTML = pageData.map(function(r) {
+    return '<tr>' + allCols.map(function(c){
+      var v = r[c] || '';
+      if (mpCols.indexOf(c) !== -1) {
+        return '<td><span class="tag ' + (v === 'Sim' ? 'sim' : 'nao') + '">' + v + '</span></td>';
+      }
+      return '<td title="' + v + '">' + v + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+
+  renderPagination();
+}
+
+function renderPagination() {
+  var total = filtered.length;
+  var pages = Math.ceil(total / PER_PAGE);
+  var pg    = document.getElementById('pagination');
+
+  if (pages <= 1) {
+    pg.innerHTML = '<span>Exibindo ' + total + ' registro(s)</span>';
+    return;
+  }
+
+  var start = (page - 1) * PER_PAGE + 1;
+  var end   = Math.min(page * PER_PAGE, total);
+
+  var btns = '';
+  for (var i = 1; i <= pages; i++) {
+    btns += '<button class="pg-btn' + (i === page ? ' active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+  }
+
+  pg.innerHTML =
+    '<span>Exibindo ' + start + '–' + end + ' de ' + total + ' registro(s)</span>' +
+    '<div class="pg-btns">' +
+      '<button class="pg-btn" onclick="goPage(' + (page-1) + ')" ' + (page===1?'disabled':'') + '>‹</button>' +
+      btns +
+      '<button class="pg-btn" onclick="goPage(' + (page+1) + ')" ' + (page===pages?'disabled':'') + '>›</button>' +
+    '</div>';
+}
+
+function goPage(p) {
+  var pages = Math.ceil(filtered.length / PER_PAGE);
+  if (p < 1 || p > pages) return;
+  page = p;
+  renderTable();
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+function downloadCSV() {
+  if (!filtered.length) { alert('Nenhum dado para exportar.'); return; }
+  var keys = Object.keys(filtered[0]);
+  var csv  = [keys, ...filtered.map(function(r){ return keys.map(function(k){ return r[k] || ''; }); })]
+    .map(function(row){ return row.map(function(v){ return '"' + String(v).replace(/"/g,'""') + '"'; }).join(';'); })
+    .join('\n');
+  var a  = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = 'sellers_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// ── Clear ──────────────────────────────────────────────────────────────────
+function confirmClear() {
+  if (!allRecords.length) { alert('Não há dados para apagar.'); return; }
+  var step1 = confirm('\u26a0\ufe0f Atenção!\n\nEssa ação irá apagar todos os ' + allRecords.length + ' cadastros salvos localmente.\n\nOs dados no Google Sheets NÃO serão apagados.\n\nDeseja continuar?');
+  if (!step1) return;
+  var step2 = prompt('Para confirmar, digite APAGAR em maiúsculas:');
+  if (step2 === 'APAGAR') {
+    localStorage.removeItem(STORAGE_KEY);
+    loadData();
+    alert('\u2713 Dados locais apagados com sucesso.');
+  } else {
+    alert('Confirmação incorreta. Nenhum dado foi apagado.');
+  }
+}
+</script>
+</body>
+</html>
