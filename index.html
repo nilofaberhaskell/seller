@@ -33,7 +33,7 @@
   /* Header */
   header{background:var(--green-800);border-radius:14px;padding:32px 36px;margin-bottom:24px;display:flex;align-items:center;gap:20px;box-shadow:0 4px 16px rgba(40,100,65,.10);position:relative;overflow:hidden}
   header::before{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(82,183,136,.18) 0%,transparent 70%);pointer-events:none}
-  .h-logo{width:64px;height:64px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .h-logo{width:72px;height:72px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border-radius:10px;background:rgba(255,255,255,.15)}
   .h-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#fff;letter-spacing:-.4px;line-height:1.15}
   .h-title span{color:var(--green-400)}
   .h-sub{color:rgba(255,255,255,.65);font-size:14px;margin-top:5px;font-weight:300}
@@ -130,10 +130,17 @@
   @keyframes spin{to{transform:rotate(360deg)}}
 
   /* Toast */
-  .toast{position:fixed;bottom:28px;right:28px;padding:13px 20px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.15);align-items:center;gap:10px;display:none}
-  .toast.ok{background:var(--green-700);color:#fff}
-  .toast.fail{background:#c0392b;color:#fff}
-  @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  /* Modal de confirmação */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.show{display:flex;animation:fadeIn .2s ease}
+  .modal-box{background:#fff;border-radius:16px;padding:40px 32px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:popIn .25s ease}
+  .modal-icon{width:64px;height:64px;background:var(--green-100);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px}
+  .modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px}
+  .modal-sub{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:28px}
+  .modal-btn{width:100%;padding:14px;background:var(--green-700);color:#fff;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.3px}
+  .modal-btn:hover{background:var(--green-800)}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
 
 </style>
 </head>
@@ -141,49 +148,16 @@
 <div class="wrap">
 
   <header>
-    <div class="h-logo"><svg viewBox="0 0 100 100" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
-  
-  <circle cx="50" cy="50" r="50" fill="#2d6a4f"/>
-  
-  
-  <path d="M44,38 C44,28 50,22 48,14 C46,8 40,10 41,18 C42,24 46,26 45,34" 
-        fill="white" opacity="0.95"/>
-  
-  <path d="M50,36 C50,24 56,16 53,8 C51,2 44,4 46,13 C48,20 52,22 50,32" 
-        fill="white" opacity="0.95"/>
-  
-  <path d="M56,40 C56,30 62,23 59,15 C57,9 50,11 52,19 C54,26 57,27 56,36" 
-        fill="white" opacity="0.95"/>
-  
-  <text x="50" y="62" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="400" fill="white" letter-spacing="0.5">haskell</text>
-  
-  <text x="79" y="58" text-anchor="middle" font-family="Georgia, serif" font-size="6" fill="white">®</text>
-  
-  <text x="50" y="74" text-anchor="middle" font-family="Georgia, serif" font-size="7.5" font-weight="300" fill="white" letter-spacing="1.5">cosméticos</text>
-</svg></div>
+    <div class="h-logo"><img src="https://acdn-us.mitiendanube.com/stores/001/154/387/themes/common/logo-668637200-1716559383-ce2ff7c48eefb1a2e2e8fca4eb8956c51716559384-320-0.webp" alt="Haskell" style="width:100%;height:100%;object-fit:contain;border-radius:8px"></div>
     <div>
       <div class="h-title">Cadastro de <span>Sellers</span></div>
       <div class="h-sub">Preencha os dados do vendedor e os canais de venda ativos</div>
     </div>
   </header>
 
-  <div class="sheets-badge">
-    <div class="sh-icon">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-        <rect x="3" y="3" width="18" height="18" rx="2" fill="white" opacity=".9"/>
-        <rect x="6" y="7" width="5" height="2" rx=".5" fill="#0f9d58"/>
-        <rect x="13" y="7" width="5" height="2" rx=".5" fill="#0f9d58"/>
-        <rect x="6" y="11" width="5" height="2" rx=".5" fill="#0f9d58"/>
-        <rect x="13" y="11" width="5" height="2" rx=".5" fill="#0f9d58"/>
-        <rect x="6" y="15" width="5" height="2" rx=".5" fill="#0f9d58"/>
-        <rect x="13" y="15" width="5" height="2" rx=".5" fill="#0f9d58"/>
-      </svg>
-    </div>
-    <div class="sh-info">
-      <div class="sh-title">Integração com Google Sheets ativa</div>
-      <div class="sh-sub">Os cadastros são enviados automaticamente para a planilha do administrador</div>
-    </div>
-    <div class="sh-dot">Conectado</div>
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#fff;border:1px solid var(--border-m);border-radius:var(--r);margin-bottom:20px;box-shadow:var(--sh)">
+    <div style="width:9px;height:9px;border-radius:50%;background:#0f9d58;box-shadow:0 0 0 3px rgba(15,157,88,.2);flex-shrink:0"></div>
+    <span style="font-size:13px;color:var(--muted);font-weight:500">Formulário ativo</span>
   </div>
 
   <div class="cbar">
@@ -298,7 +272,14 @@
   </form>
 </div>
 
-<div class="toast" id="toast"><span id="toastMsg"></span></div>
+<div class="modal-overlay" id="successModal">
+  <div class="modal-box">
+    <div class="modal-icon">✓</div>
+    <div class="modal-title">Cadastro enviado!</div>
+    <div class="modal-sub">Os dados foram registrados com sucesso. Você pode preencher um novo cadastro.</div>
+    <button class="modal-btn" onclick="closeModal()">OK, continuar</button>
+  </div>
+</div>
 
 <script>
 var SHEETS_URL  = 'https://script.google.com/macros/s/AKfycbytxEMAsf7euQv89U4wyWKSdUmM5LZgx5N27HZvl_6P4egsuJTBJ-NrIfYwqKVUeeuNZQ/exec';
@@ -524,7 +505,11 @@ function sendToSheets(record){
 
 // ── Submit ─────────────────────────────────────────────────────────────────
 function handleSave(){
-  if(!validate()) return;
+  if(!validate()){
+    var first = document.querySelector('.field.inv, #tipo-err[style*="block"]');
+    if(first){ first.scrollIntoView({ behavior:'smooth', block:'center' }); }
+    return;
+  }
 
   var btn = document.getElementById('subBtn');
   var lbl = document.getElementById('subLbl');
@@ -559,15 +544,11 @@ function clearForm(){
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
-var _tt;
 function showToast(type, msg){
-  var t = document.getElementById('toast');
-  document.getElementById('toastMsg').textContent = msg;
-  t.className = 'toast '+type;
-  t.style.display = 'flex';
-  t.style.animation = 'slideUp .3s ease';
-  clearTimeout(_tt);
-  _tt = setTimeout(function(){ t.style.display = 'none'; }, 4000);
+  document.getElementById('successModal').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('successModal').classList.remove('show');
 }
 
 // ── CNPJ mask ──────────────────────────────────────────────────────────────
