@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro de Sellers — Haskell</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-800: #1f4d35;
+    --green-700: #2d6a4f;
+    --green-600: #40916c;
+    --green-500: #52b788;
+    --green-400: #74c69d;
+    --green-300: #95d5b2;
+    --green-200: #b7e4c7;
+    --green-100: #d8f3dc;
+    --green-50:  #f0faf3;
+    --surface:   #ffffff;
+    --surface2:  #f8fdf9;
+    --border:    #d8f3dc;
+    --border-m:  #b7e4c7;
+    --text:      #1a3d2b;
+    --muted:     #6a8f7a;
+    --error:     #c0392b;
+    --r:         10px;
+    --sh:        0 1px 3px rgba(40,100,65,.08),0 1px 2px rgba(40,100,65,.05);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--green-50);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding:40px 20px 60px}
+  .wrap{max-width:760px;margin:0 auto}
+
+  /* Header */
+  header{background:var(--green-800);border-radius:14px;padding:32px 36px;margin-bottom:24px;display:flex;align-items:center;gap:20px;box-shadow:0 4px 16px rgba(40,100,65,.10);position:relative;overflow:hidden}
+  header::before{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(82,183,136,.18) 0%,transparent 70%);pointer-events:none}
+  .h-logo{width:64px;height:64px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .h-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#fff;letter-spacing:-.4px;line-height:1.15}
+  .h-title span{color:var(--green-400)}
+  .h-sub{color:rgba(255,255,255,.65);font-size:14px;margin-top:5px;font-weight:300}
+
+  /* Sheets badge */
+  .sheets-badge{background:var(--surface);border:1px solid var(--border-m);border-radius:var(--r);padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;box-shadow:var(--sh)}
+  .sh-icon{width:34px;height:34px;background:#0f9d58;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .sh-info{flex:1}
+  .sh-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text)}
+  .sh-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .sh-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:#0f9d58;font-weight:600;white-space:nowrap}
+  .sh-dot::before{content:'';width:8px;height:8px;border-radius:50%;background:#0f9d58;box-shadow:0 0 0 3px rgba(15,157,88,.2);display:block}
+
+  /* Counter */
+  .cbar{background:var(--surface);border:1px solid var(--border-m);border-radius:var(--r);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;box-shadow:var(--sh)}
+  .cinfo{display:flex;align-items:center;gap:12px}
+  .cdot{width:10px;height:10px;border-radius:50%;background:var(--green-500);box-shadow:0 0 0 3px rgba(82,183,136,.2)}
+  .cnum{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--green-700)}
+  .clbl{color:var(--muted);font-size:13px}
+
+  /* Section */
+  .sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;margin-bottom:16px;box-shadow:var(--sh);overflow:visible}
+  .sec-t{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--green-600);margin-bottom:22px;display:flex;align-items:center;gap:10px}
+  .sec-t .n{width:22px;height:22px;background:var(--green-600);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .sec-t::after{content:'';flex:1;height:1px;background:var(--border)}
+
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:560px){.g2{grid-template-columns:1fr}}
+
+  /* Fields */
+  .field{display:flex;flex-direction:column;gap:6px}
+  label{font-size:13px;font-weight:500;color:var(--text)}
+  label .req{color:var(--error);margin-left:2px}
+  input[type=text],input[type=url]{background:var(--surface2);border:1.5px solid var(--border-m);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;outline:none;width:100%;transition:border-color .2s,box-shadow .2s,background .2s}
+  input[type=text]:hover,input[type=url]:hover{border-color:var(--green-400)}
+  input[type=text]:focus,input[type=url]:focus{border-color:var(--green-600);box-shadow:0 0 0 3px rgba(64,145,108,.12);background:#fff}
+  input::placeholder{color:#aac4b3}
+  .err{font-size:12px;color:var(--error);display:none}
+  .field.inv .err{display:block}
+  .field.inv>input{border-color:var(--error);box-shadow:0 0 0 3px rgba(192,57,43,.08)}
+
+  /* Distributor */
+  .dw{position:relative}
+  .drow{position:relative}
+  .drow input{padding-right:36px}
+  .dclr{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:4px;display:none}
+  .dclr:hover{color:var(--error)}
+  .ddn{position:absolute;z-index:999;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid var(--green-400);border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(40,100,65,.16);display:none}
+  .ddn.open{display:block}
+  .dopt{padding:10px 14px;font-size:13px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s}
+  .dopt:last-child{border-bottom:none}
+  .dopt:hover,.dopt.hi{background:var(--green-50);color:var(--green-800)}
+  .dopt mark{background:var(--green-200);color:#1a3d2b;border-radius:2px;padding:0 2px;font-style:normal}
+  .dopt.empty{color:var(--muted);font-style:italic;cursor:default}
+  .dopt.empty:hover{background:none}
+  .dchip{display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--green-50);border:1.5px solid var(--green-400);border-radius:8px;font-size:14px;font-weight:500;color:var(--green-800)}
+  .dchip.show{display:flex}
+  .dchip-rm{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px;margin-left:auto;transition:color .15s}
+  .dchip-rm:hover{color:var(--error)}
+
+  /* Radio */
+  .rg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:560px){.rg{grid-template-columns:1fr}}
+  .rc input[type=radio]{display:none}
+  .rc label{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 12px;background:var(--surface2);border:1.5px solid var(--border-m);border-radius:10px;cursor:pointer;text-align:center;color:var(--muted);font-size:13px;font-weight:500;line-height:1.3;transition:border-color .2s,background .2s,box-shadow .2s;font-family:'DM Sans',sans-serif}
+  .rc label .ic{font-size:24px}
+  .rc label:hover{border-color:var(--green-400);background:var(--green-50)}
+  .rc input:checked+label{border-color:var(--green-600);background:var(--green-50);color:var(--green-800);box-shadow:0 0 0 3px rgba(64,145,108,.12)}
+  #tipo-err{font-size:12px;color:var(--error);margin-top:8px;display:none}
+
+  /* Marketplace */
+  .mpl{display:flex;flex-direction:column;gap:8px}
+  .mpi{background:var(--surface2);border:1.5px solid var(--border-m);border-radius:8px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+  .mpi:hover{border-color:var(--green-400)}
+  .mpi.on{border-color:var(--green-600);background:#fff;box-shadow:0 0 0 3px rgba(64,145,108,.10)}
+  .mph{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;user-select:none}
+  .mph input[type=checkbox]{width:17px;height:17px;accent-color:var(--green-600);cursor:pointer;flex-shrink:0}
+  .mplogo{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+  .mpn{font-size:14px;font-weight:500;color:var(--text);flex:1}
+  .mpb{font-size:11px;background:var(--green-100);color:var(--green-700);border-radius:20px;padding:3px 10px;font-weight:600}
+  .mpbd{display:none;padding:14px 16px 16px;border-top:1px solid var(--border);background:var(--green-50)}
+  .mpi.on .mpbd{display:block}
+
+  /* Buttons */
+  .actions{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap}
+  .btn{padding:13px 26px;border-radius:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.4px}
+  .btn-p{background:var(--green-700);color:#fff;flex:1;box-shadow:0 2px 8px rgba(45,106,79,.25);display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-p:hover{background:var(--green-800);transform:translateY(-1px)}
+  .btn-p:active{transform:none}
+  .btn-p:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .btn-s{background:transparent;color:var(--muted);border:1.5px solid var(--border-m)}
+  .btn-s:hover{border-color:var(--green-400);color:var(--green-700)}
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Toast */
+  .toast{position:fixed;bottom:28px;right:28px;padding:13px 20px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.15);align-items:center;gap:10px;display:none}
+  .toast.ok{background:var(--green-700);color:#fff}
+  .toast.fail{background:#c0392b;color:#fff}
+  @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="h-logo"><svg viewBox="0 0 100 100" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
+  
+  <circle cx="50" cy="50" r="50" fill="#2d6a4f"/>
+  
+  
+  <path d="M44,38 C44,28 50,22 48,14 C46,8 40,10 41,18 C42,24 46,26 45,34" 
+        fill="white" opacity="0.95"/>
+  
+  <path d="M50,36 C50,24 56,16 53,8 C51,2 44,4 46,13 C48,20 52,22 50,32" 
+        fill="white" opacity="0.95"/>
+  
+  <path d="M56,40 C56,30 62,23 59,15 C57,9 50,11 52,19 C54,26 57,27 56,36" 
+        fill="white" opacity="0.95"/>
+  
+  <text x="50" y="62" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="400" fill="white" letter-spacing="0.5">haskell</text>
+  
+  <text x="79" y="58" text-anchor="middle" font-family="Georgia, serif" font-size="6" fill="white">®</text>
+  
+  <text x="50" y="74" text-anchor="middle" font-family="Georgia, serif" font-size="7.5" font-weight="300" fill="white" letter-spacing="1.5">cosméticos</text>
+</svg></div>
+    <div>
+      <div class="h-title">Cadastro de <span>Sellers</span></div>
+      <div class="h-sub">Preencha os dados do vendedor e os canais de venda ativos</div>
+    </div>
+  </header>
+
+  <div class="sheets-badge">
+    <div class="sh-icon">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <rect x="3" y="3" width="18" height="18" rx="2" fill="white" opacity=".9"/>
+        <rect x="6" y="7" width="5" height="2" rx=".5" fill="#0f9d58"/>
+        <rect x="13" y="7" width="5" height="2" rx=".5" fill="#0f9d58"/>
+        <rect x="6" y="11" width="5" height="2" rx=".5" fill="#0f9d58"/>
+        <rect x="13" y="11" width="5" height="2" rx=".5" fill="#0f9d58"/>
+        <rect x="6" y="15" width="5" height="2" rx=".5" fill="#0f9d58"/>
+        <rect x="13" y="15" width="5" height="2" rx=".5" fill="#0f9d58"/>
+      </svg>
+    </div>
+    <div class="sh-info">
+      <div class="sh-title">Integração com Google Sheets ativa</div>
+      <div class="sh-sub">Os cadastros são enviados automaticamente para a planilha do administrador</div>
+    </div>
+    <div class="sh-dot">Conectado</div>
+  </div>
+
+  <div class="cbar">
+    <div class="cinfo">
+      <div class="cdot"></div>
+      <div class="cnum" id="cnum">0</div>
+      <div class="clbl">cadastro(s) enviado(s)</div>
+    </div>
+    <button class="btn btn-s" onclick="clearForm()">Limpar formulário</button>
+  </div>
+
+  <form id="mainForm" novalidate>
+
+    <!-- 1. Distribuidor -->
+    <div class="sec">
+      <div class="sec-t"><span class="n">1</span>Distribuidor Responsável</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">Selecione o distribuidor ao qual este vendedor pertence.</p>
+      <div class="field" id="f_dist">
+        <label>Distribuidor <span class="req">*</span></label>
+        <div class="dchip" id="dchip">
+          <span>🏭</span>
+          <span id="dchipName"></span>
+          <button type="button" class="dchip-rm" onclick="removeDist()">✕</button>
+        </div>
+        <div class="dw" id="dw">
+          <div class="drow">
+            <input type="text" id="distInput" placeholder="Digite para buscar o distribuidor..."
+              autocomplete="off"
+              oninput="onDistInput()"
+              onfocus="onDistFocus()"
+              onkeydown="onDistKey(event)">
+            <button type="button" class="dclr" id="dclr" onclick="clearDistInput()">✕</button>
+          </div>
+          <div class="ddn" id="ddn"></div>
+        </div>
+        <input type="hidden" id="distVal">
+        <span class="err">Selecione um distribuidor</span>
+      </div>
+    </div>
+
+    <!-- 2. Dados do Vendedor -->
+    <div class="sec">
+      <div class="sec-t"><span class="n">2</span>Dados do Vendedor</div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="g2">
+          <div class="field" id="f_nome">
+            <label>Nome do Vendedor <span class="req">*</span></label>
+            <input type="text" id="nome" placeholder="Ex: João Silva">
+            <span class="err">Campo obrigatório</span>
+          </div>
+          <div class="field" id="f_razao">
+            <label>Razão Social <span class="req">*</span></label>
+            <input type="text" id="razao" placeholder="Ex: JS Comércio S.A.">
+            <span class="err">Campo obrigatório</span>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="field" id="f_cnpj">
+            <label>CNPJ / CPF <span class="req">*</span></label>
+            <input type="text" id="cnpj" placeholder="00.000.000/0001-00" maxlength="18">
+            <span class="err">Campo obrigatório</span>
+          </div>
+          <div class="field" id="f_fantasia">
+            <label>Nome Fantasia <span class="req">*</span></label>
+            <input type="text" id="fantasia" placeholder="Ex: JS Shop">
+            <span class="err">Campo obrigatório</span>
+          </div>
+        </div>
+        <div class="field" id="f_email">
+          <label>E-mail do Vendedor <span class="req">*</span></label>
+          <input type="text" id="email" placeholder="Ex: contato@jsshop.com.br">
+          <span class="err">Informe um e-mail válido</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Tipo -->
+    <div class="sec">
+      <div class="sec-t"><span class="n">3</span>Tipo de Operação</div>
+      <div class="rg">
+        <div class="rc"><input type="radio" name="tipo" id="t1" value="Loja Digital Puro"><label for="t1"><span class="ic">💻</span>Loja Digital Puro</label></div>
+        <div class="rc"><input type="radio" name="tipo" id="t2" value="Híbrido"><label for="t2"><span class="ic">🔀</span>Híbrido</label></div>
+        <div class="rc"><input type="radio" name="tipo" id="t3" value="Loja de Distribuidor"><label for="t3"><span class="ic">🏭</span>Loja de Distribuidor</label></div>
+      </div>
+      <div id="tipo-err">Selecione o tipo de operação</div>
+    </div>
+
+    <!-- 4. Canais -->
+    <div class="sec">
+      <div class="sec-t"><span class="n">4</span>Canais de Venda</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5">Selecione os canais ativos. O link é <strong style="color:var(--text)">obrigatório</strong> apenas para os canais marcados.</p>
+      <div class="mpl" id="mpl"></div>
+    </div>
+
+    <!-- 5. Obs -->
+    <div class="sec">
+      <div class="sec-t"><span class="n">5</span>Observações</div>
+      <div class="field">
+        <label>Outros canais ou informações adicionais</label>
+        <input type="text" id="obs" placeholder="Ex: também vende em feiras físicas, atacado...">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-p" id="subBtn" onclick="handleSave()">
+        <span id="subLbl">✓ Salvar Cadastro</span>
+        <div class="spinner" id="subSpinner"></div>
+      </button>
+      <button type="button" class="btn btn-s" onclick="clearForm()">Limpar</button>
+    </div>
+
+  </form>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+var SHEETS_URL  = 'https://script.google.com/macros/s/AKfycbzYUDvgFFeFmkm1nU_1ne06PJpibIfNwnGy4bwuzmiVdVOfOysolZod1_kZkniq6SeRIg/exec';
+var STORAGE_KEY = 'sellers_haskell_v3';
+
+var DIST = [
+  'ACRI DISTRIBUIDORA','ADL DISTRIBUIDORA','ÁGAPE DISTRIBUIDORA','AIKA DISTRIBUIDORA',
+  'AMMA DISTRIBUIDORA','ARMARINHO ALIANÇA DISTRIBUIDORA','BELEZA BRASILEIRA DISTRIBUIDORA',
+  'BL DISTRIBUIDORA','BS REPRESENTAÇÕES','COMERCIAL NADER',
+  'CONCEITO DISTRIBUIDORA (MD DISTRIBUIDORA)','COSMINAS DISTRIBUIDORA','CRISMELL DISTRIBUIDORA',
+  'DHR DISTRIBUIDORA','DIRETRIZ DISTRIBUIDORA','DISTRIBUIDORA 2 IRMÃOS','DISTRIBUIDORA SIQUEIRA',
+  'DIVA COSMÉTICOS','DP BRETAS COSMÉTICOS','DS DISTRIBUIDORA','EDR DISTRIBUIDORA',
+  'ERVALIA COSMÉTICOS','ESSENCIA DA NATUREZA','ETNA DISTRIBUIDORA','G&L DISTRIBUIDORA',
+  'GPS DISTRIBUIDORA','INOVE COSMÉTICOS','JORGE COSMÉTICOS','KELEOS DISTRIBUIDORA (RS)',
+  'LINHARES DISTRIBUIDORA','LISBOA DISTRIBUIDORA','LOPES DISTRIBUIDORA',
+  'MANINHO DISTRIBUIDORA (SM DE CARVALHO)','MF QUEIROZ DISTRIBUIDORA','MINAS DISTRIBUIDORA',
+  'MODELO COSMÉTICOS','MS COSMÉTICOS (SC)','NATABRASILIS DISTRIBUIDORA','NATUMIX DISTRIBUIDORA',
+  'PERFFIL DISTRIBUIDORA (PB)','PETTRA DISTRIBUIDORA (PERFFIL RN)','PRISMA',
+  'PROMOVE DISTRIBUIDORA','RC TOLEDO DISTRIBUIDORA','T&T DISTRIBUIDORA','TB DISTRIBUIDORA',
+  'TRIÂNGULO DAS GERAIS','TRINDADE DISTRIBUIDORA (CARNEIRO)','UCHOA E MACHADO DISTRIBUIDORA',
+  'VI BELEZA','VIDA BELA (SC)','VIP SERVICE DISTRIBUIDORA LTDA.','TIO LUIZ','VONA COSMÉTICOS'
+];
+
+var MPS = [
+  {id:'ml',         name:'Mercado Livre',  bg:'#ffe600',fg:'#333'},
+  {id:'amazon',     name:'Amazon',          bg:'#ff9900',fg:'#fff'},
+  {id:'shopee',     name:'Shopee',          bg:'#ee4d2d',fg:'#fff'},
+  {id:'magalu',     name:'Magazine Luiza',  bg:'#0086ff',fg:'#fff'},
+  {id:'americanas', name:'Americanas',      bg:'#e60014',fg:'#fff'},
+  {id:'casasbahia', name:'Casas Bahia',     bg:'#0046be',fg:'#fff'},
+  {id:'carrefour',  name:'Carrefour',       bg:'#004f9f',fg:'#fff'},
+  {id:'kabum',      name:'KaBuM!',          bg:'#ff6600',fg:'#fff'},
+  {id:'netshoes',   name:'Netshoes',        bg:'#00a651',fg:'#fff'},
+  {id:'proprio',    name:'Site Próprio',    bg:'#40916c',fg:'#fff',badge:'E-commerce próprio'}
+];
+
+var records   = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+var dfil      = DIST.slice();
+var dfocus    = -1;
+
+// ── Build MP list ──────────────────────────────────────────────────────────
+
+(function(){
+  var list = document.getElementById('mpl');
+  list.innerHTML = MPS.map(function(mp){
+    var abbr = mp.name.replace(/[^A-Za-z0-9]/g,'').slice(0,2).toUpperCase();
+    var bdg  = mp.badge ? '<span class="mpb">'+mp.badge+'</span>' : '';
+    return '<div class="mpi" id="mi_'+mp.id+'">'
+      +'<div class="mph" onclick="tMP(\''+mp.id+'\')">'
+      +'<input type="checkbox" id="ck_'+mp.id+'" onclick="event.stopPropagation();sMP(\''+mp.id+'\',this.checked)">'
+      +'<div class="mplogo" style="background:'+mp.bg+';color:'+mp.fg+'">'+abbr+'</div>'
+      +'<span class="mpn">'+mp.name+'</span>'+bdg
+      +'</div>'
+      +'<div class="mpbd">'
+      +'<div class="field" id="fu_'+mp.id+'">'
+      +'<label>Link da loja — '+mp.name+' <span class="req">*</span></label>'
+      +'<input type="url" id="url_'+mp.id+'" placeholder="https://...">'
+      +'<span class="err">Informe o link da loja</span>'
+      +'</div></div></div>';
+  }).join('');
+  document.getElementById('cnum').textContent = records.length;
+})();
+
+// ── Distributor ────────────────────────────────────────────────────────────
+function onDistFocus(){
+  if(document.getElementById('distVal').value) return;
+  renderDist('');
+  document.getElementById('ddn').classList.add('open');
+}
+
+function onDistInput(){
+  var q = document.getElementById('distInput').value;
+  document.getElementById('dclr').style.display = q ? 'block' : 'none';
+  dfocus = -1;
+  renderDist(q);
+  document.getElementById('ddn').classList.add('open');
+  document.getElementById('f_dist').classList.remove('inv');
+}
+
+function renderDist(q){
+  var dd = document.getElementById('ddn');
+  var ql = q.trim().toLowerCase();
+  dfil   = ql ? DIST.filter(function(d){ return d.toLowerCase().indexOf(ql) !== -1; }) : DIST.slice();
+  if(!dfil.length){
+    dd.innerHTML = '<div class="dopt empty">Nenhum distribuidor encontrado</div>';
+    return;
+  }
+  dd.innerHTML = dfil.map(function(d,i){
+    var lbl = ql
+      ? d.replace(new RegExp('('+escR(ql)+')','gi'),'<mark>$1</mark>')
+      : d;
+    return '<div class="dopt" data-i="'+i+'" onmousedown="pickDist(\''+d.replace(/'/g,"\\'")+'\',event)">'+lbl+'</div>';
+  }).join('');
+}
+
+function pickDist(name, ev){
+  if(ev) ev.preventDefault();
+  document.getElementById('distVal').value     = name;
+  document.getElementById('dchipName').textContent = name;
+  document.getElementById('dchip').classList.add('show');
+  document.getElementById('dw').style.display  = 'none';
+  document.getElementById('ddn').classList.remove('open');
+  document.getElementById('f_dist').classList.remove('inv');
+}
+
+function removeDist(){
+  document.getElementById('distVal').value = '';
+  document.getElementById('dchip').classList.remove('show');
+  document.getElementById('dw').style.display = '';
+  document.getElementById('distInput').value = '';
+  document.getElementById('dclr').style.display = 'none';
+}
+
+function clearDistInput(){
+  document.getElementById('distInput').value = '';
+  document.getElementById('dclr').style.display = 'none';
+  renderDist('');
+}
+
+function onDistKey(e){
+  var items = document.querySelectorAll('#ddn .dopt:not(.empty)');
+  if(e.key === 'ArrowDown'){ e.preventDefault(); dfocus = Math.min(dfocus+1,items.length-1); hiDist(items); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); dfocus = Math.max(dfocus-1,0); hiDist(items); }
+  else if(e.key === 'Enter' && dfocus >= 0){ e.preventDefault(); pickDist(dfil[dfocus]); }
+  else if(e.key === 'Escape'){ document.getElementById('ddn').classList.remove('open'); }
+}
+
+function hiDist(items){
+  items.forEach(function(el,i){ el.classList.toggle('hi', i === dfocus); });
+  if(items[dfocus]) items[dfocus].scrollIntoView({block:'nearest'});
+}
+
+function escR(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+
+document.addEventListener('click', function(e){
+  var dw = document.getElementById('dw');
+  if(dw && !dw.contains(e.target)){
+    document.getElementById('ddn').classList.remove('open');
+  }
+});
+
+// ── Marketplace ────────────────────────────────────────────────────────────
+function tMP(id){
+  var ck = document.getElementById('ck_'+id);
+  sMP(id, !ck.checked);
+}
+function sMP(id, on){
+  var ck   = document.getElementById('ck_'+id);
+  var item = document.getElementById('mi_'+id);
+  ck.checked = on;
+  item.classList.toggle('on', on);
+  if(!on){ var fu = document.getElementById('fu_'+id); if(fu) fu.classList.remove('inv'); }
+}
+
+// ── Validate ───────────────────────────────────────────────────────────────
+function validate(){
+  var ok = true;
+
+  var chk = function(fId, pass){
+    var f = document.getElementById(fId);
+    if(!pass){ f.classList.add('inv'); ok = false; }
+    else f.classList.remove('inv');
+  };
+
+  chk('f_dist', !!document.getElementById('distVal').value);
+  chk('f_nome',    !!document.getElementById('nome').value.trim());
+  chk('f_razao',   !!document.getElementById('razao').value.trim());
+  chk('f_cnpj',    !!document.getElementById('cnpj').value.trim());
+  chk('f_fantasia',!!document.getElementById('fantasia').value.trim());
+  chk('f_email',   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('email').value.trim()));
+
+  var tipo = document.querySelector('input[name="tipo"]:checked');
+  var te   = document.getElementById('tipo-err');
+  if(!tipo){ te.style.display = 'block'; ok = false; } else te.style.display = 'none';
+
+  MPS.forEach(function(mp){
+    var ck = document.getElementById('ck_'+mp.id);
+    if(ck && ck.checked){
+      var uEl = document.getElementById('url_'+mp.id);
+      var fEl = document.getElementById('fu_'+mp.id);
+      if(!uEl || !uEl.value.trim()){ fEl.classList.add('inv'); ok = false; }
+      else fEl.classList.remove('inv');
+    }
+  });
+
+  return ok;
+}
+
+// ── Build record ───────────────────────────────────────────────────────────
+function buildRecord(){
+  var tipo = document.querySelector('input[name="tipo"]:checked');
+  var r = {
+    'Data Cadastro':    new Date().toLocaleString('pt-BR'),
+    'Distribuidor':     document.getElementById('distVal').value,
+    'Nome do Vendedor': document.getElementById('nome').value.trim(),
+    'Razão Social':     document.getElementById('razao').value.trim(),
+    'CNPJ/CPF':         document.getElementById('cnpj').value.trim(),
+    'Nome Fantasia':    document.getElementById('fantasia').value.trim(),
+    'E-mail':           document.getElementById('email').value.trim(),
+    'Tipo Operação':    tipo ? tipo.value : ''
+  };
+  MPS.forEach(function(mp){
+    var ck  = document.getElementById('ck_'+mp.id);
+    var uEl = document.getElementById('url_'+mp.id);
+    r[mp.name]         = (ck && ck.checked) ? 'Sim' : 'Não';
+    r['Link '+mp.name] = (ck && ck.checked && uEl) ? uEl.value.trim() : '';
+  });
+  r['Observações'] = document.getElementById('obs').value.trim();
+  return r;
+}
+
+// ── Send ───────────────────────────────────────────────────────────────────
+function sendToSheets(record){
+  return fetch(SHEETS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(record)
+  })
+  .then(function(){ return true; })
+  .catch(function(){ return false; });
+}
+
+// ── Submit ─────────────────────────────────────────────────────────────────
+function handleSave(){
+  if(!validate()) return;
+
+  var btn = document.getElementById('subBtn');
+  var lbl = document.getElementById('subLbl');
+  var spn = document.getElementById('subSpinner');
+  btn.disabled = true;
+  lbl.textContent = 'Enviando...';
+  spn.style.display = 'block';
+
+  var record = buildRecord();
+
+  sendToSheets(record).then(function(sent){
+    records.push(record);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    document.getElementById('cnum').textContent = records.length;
+
+    btn.disabled = false;
+    lbl.textContent = '✓ Salvar Cadastro';
+    spn.style.display = 'none';
+
+    showToast('ok', sent ? '✓ Cadastro enviado ao Google Sheets!' : '✓ Cadastro salvo! Verifique sua conexão.');
+    clearForm();
+  });
+}
+
+// ── Clear ──────────────────────────────────────────────────────────────────
+function clearForm(){
+  document.getElementById('mainForm').reset();
+  removeDist();
+  MPS.forEach(function(mp){ sMP(mp.id, false); });
+  document.querySelectorAll('.field.inv').forEach(function(f){ f.classList.remove('inv'); });
+  document.getElementById('tipo-err').style.display = 'none';
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+var _tt;
+function showToast(type, msg){
+  var t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'toast '+type;
+  t.style.display = 'flex';
+  t.style.animation = 'slideUp .3s ease';
+  clearTimeout(_tt);
+  _tt = setTimeout(function(){ t.style.display = 'none'; }, 4000);
+}
+
+// ── CNPJ mask ──────────────────────────────────────────────────────────────
+document.getElementById('cnpj').addEventListener('input', function(e){
+  var v = e.target.value.replace(/\D/g,'');
+  if(v.length <= 11){
+    v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  } else {
+    v = v.replace(/(\d{2})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1/$2').replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+  }
+  e.target.value = v;
+});
+</script>
+</body>
+</html>
